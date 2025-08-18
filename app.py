@@ -1,8 +1,8 @@
 import io
 import json
-import shutil
 import tempfile
 from pathlib import Path
+
 import streamlit as st
 
 from llm_backend import generate_file_bundle
@@ -23,7 +23,7 @@ with st.sidebar:
     model_name = st.text_input(
         "Model name",
         value="gpt-4.1-mini" if provider.startswith("openai") else "Qwen2.5-Coder-7B-Instruct",
-        help="Use an available model for your account/provider."
+        help="Use a model available to your account/provider.",
     )
     temperature = st.slider("Temperature", 0.0, 1.0, 0.2, 0.05)
 
@@ -40,7 +40,9 @@ with colA:
 with colB:
     license_name = st.text_input("License (optional)", value="MIT")
 
-if st.button("Generate Code", type="primary", disabled=not user_prompt.strip()):
+btn = st.button("Generate Code", type="primary", disabled=not user_prompt.strip())
+
+if btn:
     with st.spinner("Thinking, planning files, and generating code..."):
         ok, result = generate_file_bundle(
             provider=provider.split()[0],
@@ -65,14 +67,16 @@ if st.button("Generate Code", type="primary", disabled=not user_prompt.strip()):
                 st.info("Showing first 6 files only.")
                 break
             with st.expander(path, expanded=preview_count < 3):
-                st.code(content, language="python" if path.endswith(".py") else None)
+                lang = "python" if path.endswith(".py") else None
+                st.code(content, language=lang)
             preview_count += 1
 
-        # Offer ZIP download
+        # ZIP download
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir = Path(tmpdir)
-            safe_write_files(tmpdir, result["files"])
-            zip_bytes = zip_dir_to_bytes(tmpdir)
+            tmpdir_path = Path(tmpdir)
+            safe_write_files(tmpdir_path, result["files"])
+            zip_bytes = zip_dir_to_bytes(tmpdir_path)
+
         st.download_button(
             label="⬇️ Download ZIP",
             data=zip_bytes,
